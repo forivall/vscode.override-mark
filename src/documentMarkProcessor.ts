@@ -5,6 +5,7 @@ import {
   DocumentsMarks,
   MarkOptions,
   Provider,
+  toDecorationOptions,
 } from "./overrider-mark";
 import { IDisposable } from "./util";
 
@@ -82,7 +83,8 @@ export class DocumentMarkProcessor implements IDisposable {
     const documentsMarks = await this.getDocumentsMarks(documents);
 
     for (const textEditor of vscode.window.visibleTextEditors) {
-      const marks = documentsMarks.get(textEditor.document.fileName);
+      const document = textEditor.document;
+      const marks = documentsMarks.get(document.fileName);
       if (!marks) {
         continue;
       }
@@ -94,7 +96,10 @@ export class DocumentMarkProcessor implements IDisposable {
         if (!decoration) {
           return;
         }
-        textEditor.setDecorations(decoration, options);
+        textEditor.setDecorations(
+          decoration,
+          options.map(toDecorationOptions(document))
+        );
       }
     }
   }

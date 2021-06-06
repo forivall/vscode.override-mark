@@ -5,8 +5,9 @@ export enum DecorationType {
   implement = "implement",
 }
 
-export interface MarkOptions extends vscode.DecorationOptions {
+export interface MarkOptions {
   type: DecorationType;
+  range: ts.TextRange;
 }
 
 export type DocumentsMarks = Map<string, MarkOptions[]>;
@@ -18,4 +19,16 @@ export interface Provider {
 
 export interface OverrideMarkApi {
   addProvider(provider: Provider): void;
+}
+
+export function toDecorationOptions(document: vscode.TextDocument) {
+  return (options: MarkOptions): vscode.DecorationOptions => {
+    const { range } = options;
+    return {
+      range: new vscode.Range(
+        document.positionAt(range.pos),
+        document.positionAt(range.end)
+      ),
+    };
+  };
 }

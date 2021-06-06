@@ -50,10 +50,10 @@ export class Walker {
     this._checker = this._program.getTypeChecker();
   }
 
-  public walk(document: vscode.TextDocument): MarkOptions[] {
+  public walk(fileName: string): MarkOptions[] {
     const result: MarkOptions[] = [];
 
-    const sourceFile = this._program.getSourceFile(document.fileName);
+    const sourceFile = this._program.getSourceFile(fileName);
 
     if (!sourceFile) {
       return result;
@@ -61,7 +61,7 @@ export class Walker {
 
     const cb = (node: Node): void => {
       if (isSomeClassElement(node)) {
-        this.checkClassElement(node, document, result);
+        this.checkClassElement(node, result);
       }
       return tsModule.forEachChild(node, cb);
     };
@@ -72,25 +72,23 @@ export class Walker {
 
   private checkClassElement(
     element: AllClassElements,
-    document: vscode.TextDocument,
     result: MarkOptions[]
   ) {
     switch (element.kind) {
       case tsModule.SyntaxKind.Constructor:
-        this.checkConstructorDeclaration(element, document, result);
+        this.checkConstructorDeclaration(element, result);
         break;
       case tsModule.SyntaxKind.MethodDeclaration:
       case tsModule.SyntaxKind.PropertyDeclaration:
       case tsModule.SyntaxKind.GetAccessor:
       case tsModule.SyntaxKind.SetAccessor:
-        this.checkOverrideableElementDeclaration(element, document, result);
+        this.checkOverrideableElementDeclaration(element, result);
         break;
     }
   }
 
   private checkConstructorDeclaration(
     node: ConstructorDeclaration,
-    document: vscode.TextDocument,
     result: MarkOptions[]
   ) {
     if (!node.parent || node.parent.heritageClauses === undefined) {
@@ -124,16 +122,12 @@ export class Walker {
 
     result.push({
       type: DecorationType.override,
-      range: new vscode.Range(
-        document.positionAt(pos),
-        document.positionAt(end)
-      ),
+      range: { pos, end },
     });
   }
 
   private checkOverrideableElementDeclaration(
     node: OverrideableElement,
-    document: vscode.TextDocument,
     result: MarkOptions[]
   ) {
     if (isStaticMember(node)) {
@@ -154,13 +148,12 @@ export class Walker {
       return;
     }
 
-    this.checkHeritageChain(parent, node, document, result);
+    this.checkHeritageChain(parent, node, result);
   }
 
   private checkHeritageChain(
     declaration: ClassDeclaration | ClassExpression,
     node: OverrideableElement,
-    document: vscode.TextDocument,
     result: MarkOptions[]
   ) {
     const currentDeclaration = declaration;
@@ -178,10 +171,7 @@ export class Walker {
         const type = this._checker.getTypeAtLocation(typeNode);
         for (const symb of type.getProperties()) {
           if (symb.name === node.name.getText()) {
-            const range = new vscode.Range(
-              document.positionAt(node.name.getStart()),
-              document.positionAt(node.name.getEnd())
-            );
+            const range = { pos: node.name.pos, end: node.name.end }
             let type = DecorationType.override;
 
             if (isInterface) {

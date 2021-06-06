@@ -80,7 +80,7 @@ suite("Extension Tests", function () {
       return this.skip();
     }
 
-    const result = walker.walk(document);
+    const result = walker.walk(document.fileName);
 
     const override = result.filter(r => r.type === DecorationType.override);
     assert.equal(override.length, 5);
